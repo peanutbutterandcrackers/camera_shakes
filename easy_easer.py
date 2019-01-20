@@ -15,7 +15,7 @@ def TweenWrapper(TweeningFunction, Progress, LowerBound, UpperBound):
 def MegaTweenWrapper(TweeningFunction, Steps, LowerBound, UpperBound):
 	"""Return a list returned by calling TweenWrapper() for given n Steps"""	
 	ReturnValues = []
-	Iterator = list(range(1, Steps+1)) # +1 on both sides so as to prevent 0 from popping up and causing ZeroDivisionError
+	Iterator = list(range(1, int(Steps)+1)) # +1 on both sides so as to prevent 0 from popping up and causing ZeroDivisionError
 	for i in Iterator:
 		Progress = float(i) / max(Iterator)
 		ReturnValues.append(TweenWrapper(TweeningFunction, Progress, LowerBound, UpperBound))
