@@ -10,11 +10,11 @@ import math, random
 
 xOffsetLowerBound = -5
 xOffsetUpperBound = 5
-yOffsetLowerBound = -5
-yOffsetUpperBound = 5
+yOffsetLowerBound = -5*2
+yOffsetUpperBound = 5*2
 
-rotationLowerBound = -0.5
-rotationUpperBound = 0.1
+rotationLowerBound = -0.5*2
+rotationUpperBound = 0.1*2
 
 xOffsetMidPoint = (xOffsetLowerBound + xOffsetUpperBound) / 2
 yOffsetMidPoint = (yOffsetUpperBound + yOffsetUpperBound) / 2
@@ -26,15 +26,20 @@ def camera_shake(image, drawable, total_frames):
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
 
 	frames_done = 0
-	while frames_done != total_frames: # 'less than', so as to have one extra - because randrange is [x, y) in nature
+	while frames_done != total_frames:
 		steps = random.randrange(total_frames - frames_done) + 1 # +1 to ensure that there will never be 0
+		steps = int(round(random.gauss(total_frames / 10, math.log10(total_frames - frames_done))))
 
-		xOffsetLow = random.randint(int(xOffsetLowerBound), int(xOffsetMidPoint))
-		xOffsetHi = random.randint(int(xOffsetMidPoint), int(xOffsetUpperBound))
-		yOffsetLow = random.randint(int(yOffsetLowerBound), int(yOffsetMidPoint))
-		yOffsetHi = random.randint(int(yOffsetMidPoint), int(yOffsetUpperBound))
-		rotLow = random.randint(int(rotationLowerBound), int(rotationMid))
-		rotHi = random.randint(int(rotationMid), int(rotationUpperBound))
+		# The following prevents strong jerks at the end of the sequence by ensuring step is never smaller than a certain threshold
+		if total_frames - frames_done < random.randrange(total_frames - 0) + 1: # If the no. of rem frames is less than 'step_threshold'
+			steps = total_frames - frames_done # do all the remaining frames in a single go (step)
+
+		xOffsetLow = random.triangular(int(xOffsetLowerBound), int(xOffsetMidPoint))
+		xOffsetHi = random.triangular(int(xOffsetMidPoint), int(xOffsetUpperBound))
+		yOffsetLow = random.triangular(int(yOffsetLowerBound), int(yOffsetMidPoint))
+		yOffsetHi = random.triangular(int(yOffsetMidPoint), int(yOffsetUpperBound))
+		rotLow = random.triangular(int(rotationLowerBound), int(rotationMid))
+		rotHi = random.triangular(int(rotationMid), int(rotationUpperBound))
 
 		xOffsetList = easy_easer.MegaTweenWrapper(random.choice(easy_easer.TweeningFunctions), steps, xOffsetLow, xOffsetHi)
 		yOffsetList = easy_easer.MegaTweenWrapper(random.choice(easy_easer.TweeningFunctions), steps, yOffsetLow, yOffsetHi)
