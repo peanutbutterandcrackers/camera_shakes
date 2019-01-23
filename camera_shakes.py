@@ -5,6 +5,7 @@
 # Rotation Range [-0.5, 0.5]
 
 from gimpfu import *
+import easy_easer, pytweening
 import math, random
 
 xOffsetLowerBound = -5
@@ -23,25 +24,40 @@ xOffSigma = 1.5
 yOffSigma = 1.25
 rotSigma  = 0.125
 
-def camera_shake(image, drawable, total_frames):
+def camera_shake(image, drawable, total_keyframes, in_betweens):
 	pdb.gimp_image_undo_group_start(image)
 
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
 
+	total_frames = (in_betweens + 1) * (total_keyframes - 1) + 1
 	frames_done = 0
 	while frames_done != total_frames:
-		new_frame = pdb.gimp_layer_copy(shakee, TRUE)
-		pdb.gimp_image_insert_layer(image, new_frame, None, 0)
+		xOffKeyFrameA = random.gauss(xOffsetMidPoint, xOffSigma)
+		yOffKeyFrameA = random.gauss(yOffsetMidPoint, yOffSigma)
+		rotKeyFrameA = random.gauss(rotationMid, rotSigma)
+		xOffKeyFrameB = random.gauss(xOffsetMidPoint, xOffSigma)
+		yOffKeyFrameB = random.gauss(yOffsetMidPoint, yOffSigma)
+		rotKeyFrameB = random.gauss(rotationMid, rotSigma)
 
-		# offset drawable in x and y axis
-		pdb.gimp_drawable_offset(new_frame, FALSE, OFFSET_TRANSPARENT, random.gauss(xOffsetMidPoint, xOffSigma), random.gauss(yOffsetMidPoint, yOffSigma))
-		# random rotation on every single frame
-		pdb.gimp_item_transform_rotate(new_frame, math.radians(random.gauss(rotationMid, rotSigma)), TRUE, 0, 0)
+		steps = in_betweens + 2 # 2 keyframes + user-specified in_betweens
 
-		# TODO: Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
-		# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
+		xOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, xOffKeyFrameA, xOffKeyFrameB)
+		yOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, yOffKeyFrameA, yOffKeyFrameB)
+		rotTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, rotKeyFrameA, rotKeyFrameB)
 
-		frames_done += 1
+		for i in range(steps):
+			new_frame = pdb.gimp_layer_copy(shakee, TRUE)
+			pdb.gimp_image_insert_layer(image, new_frame, None, 0)
+
+			# offset drawable in x and y axis
+			pdb.gimp_drawable_offset(new_frame, FALSE, OFFSET_TRANSPARENT, xOffTweens[i], yOffTweens[i])
+			# random rotation on every single frame
+			pdb.gimp_item_transform_rotate(new_frame, math.radians(rotTweens[i]), TRUE, 0, 0)
+
+			# TODO: Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
+			# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
+
+			frames_done += 1
 		
 	pdb.gimp_image_undo_group_end(image)
 
@@ -55,7 +71,8 @@ register(
         [
 		(PF_IMAGE, "image", "Takes current Image", None),
 		(PF_DRAWABLE, "drawable", "Input Layer", None),
-		(PF_INT, "total_frames", "Camera Shake Duration (in frames)", 77)
+		(PF_INT, "total_keyframes", "Camera Shake Keyframes", 50),
+		(PF_INT, "in_betweens", "number of frames in between camera shake keyframes", 2)
         ],
         [],
         camera_shake,
