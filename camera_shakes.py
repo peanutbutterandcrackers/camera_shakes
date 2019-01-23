@@ -31,7 +31,10 @@ def camera_shake(image, drawable, total_keyframes, in_betweens):
 
 	total_frames = (in_betweens + 1) * (total_keyframes - 1) + 1
 	frames_done = 0
-	while frames_done != total_frames:
+
+	pdb.gimp_message("Total Animation Frames: %s" % total_frames)
+
+	while frames_done < total_frames:
 		xOffKeyFrameA = random.gauss(xOffsetMidPoint, xOffSigma)
 		yOffKeyFrameA = random.gauss(yOffsetMidPoint, yOffSigma)
 		rotKeyFrameA = random.gauss(rotationMid, rotSigma)
@@ -39,7 +42,10 @@ def camera_shake(image, drawable, total_keyframes, in_betweens):
 		yOffKeyFrameB = random.gauss(yOffsetMidPoint, yOffSigma)
 		rotKeyFrameB = random.gauss(rotationMid, rotSigma)
 
-		steps = in_betweens + 2 # 2 keyframes + user-specified in_betweens
+		rem_frames = total_frames - frames_done
+		steps = in_betweens + 2 # user-specified in_betweens + 2 Key Frames
+		if steps > rem_frames:
+			steps = rem_frames
 
 		xOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, xOffKeyFrameA, xOffKeyFrameB)
 		yOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, yOffKeyFrameA, yOffKeyFrameB)
