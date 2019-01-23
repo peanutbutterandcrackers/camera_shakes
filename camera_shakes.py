@@ -44,7 +44,7 @@ def camera_shake(image, drawable, total_frames):
 		# offset drawable in x and y axis
 		pdb.gimp_drawable_offset(new_frame, FALSE, OFFSET_TRANSPARENT, random.gauss(xOffsetMidPoint, xOffSigma), random.gauss(yOffsetMidPoint, yOffSigma))
 		# random rotation on every single frame
-		pdb.gimp_item_transform_rotate(new_frame, math.radians(random.gauss(rotationMid, rotSigma), TRUE, 0, 0)
+		pdb.gimp_item_transform_rotate(new_frame, math.radians(random.gauss(rotationMid, rotSigma)), TRUE, 0, 0)
 
 
 		# TODO: Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
