@@ -6,7 +6,7 @@ import math, random
 
 def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBound, xOffsetUpperBound,
   yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, xOffSigma,
-    yOffSigma, rotSigma):
+    yOffSigma, rotSigma, seamless):
 	pdb.gimp_image_undo_group_start(image)
 
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
@@ -27,10 +27,25 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 		yOffKeyFrameB = random.gauss(yOffsetMidPoint, yOffSigma)
 		rotKeyFrameB = random.gauss(rotationMid, rotSigma)
 
+		# For the first shake
+		if frames_done == 0 and seamless:
+			# start interpolating the shake from 0s.
+			xOffKeyFrameA, yOffKeyFrameA, rotKeyFrameA = 0, 0, 0
+			# TODO: Perhaps have seamlessness be a slider and have a line akin to the following to decrease
+			# B-frames in the 1st and A-frames in the last shake so as to make them even less notice-able.
+			# The more the seamless-ness value, the greater the denominator. Find better mathematical expr.
+			# xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB = xOffKeyFrameB/2, yOffKeyFrameB/2, rotKeyFrameB/2
+
 		rem_frames = total_frames - frames_done
 		steps = in_betweens + 2 # user-specified in_betweens + 2 Key Frames
-		if steps > rem_frames:
+
+		# For the last shake
+		if steps >= rem_frames:
 			steps = rem_frames
+			if seamless:
+				# Make the sequence seamless by ending up the same way as the base (untouched layer)
+				# i.e. no shakes in the last layer
+				xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB = 0, 0, 0
 
 		xOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, xOffKeyFrameA, xOffKeyFrameB)
 		yOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, yOffKeyFrameA, yOffKeyFrameB)
@@ -72,7 +87,8 @@ register(
 		(PF_FLOAT, "rotationUpperBound", "Rotation Upper Bound", 0.1*2),
 		(PF_FLOAT, "xOffSigma", "X Offset Sigma", 1.5),
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
-		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125)
+		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
+		(PF_BOOL, "seamless", "Seamless", True)
         ],
         [],
         camera_shake,
