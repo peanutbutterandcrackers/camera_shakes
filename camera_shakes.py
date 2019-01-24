@@ -10,6 +10,9 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 
 	pdb.gimp_image_undo_group_start(image)
 
+	# script behaviours
+	toggle_keyframe_linking_randomly = False
+
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
 	
 	xOffsetMidPoint = (xOffsetLowerBound + xOffsetUpperBound) / 2
@@ -20,7 +23,13 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 	frames_done = 0
 	pdb.gimp_message("Total Animation Frames: %s" % total_frames)
 
+	if link_keyframes == "Intermittently":
+		toggle_keyframe_linking_randomly = True
+
 	while frames_done < total_frames:
+
+		if toggle_keyframe_linking_randomly:
+			link_keyframes = random.choice(True, False)
 
 		# If this is the first frame and 'seamless' is false, OR if link_keyframes is false,
 		# set A-frames to a random value; if link_keyframes is true, B-frame will become the
@@ -100,7 +109,7 @@ register(
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
 		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
 		(PF_BOOL, "seamless", "Seamless", True),
-		(PF_BOOL, "link_keyframes", "Link Keyframes", True)
+		(PF_OPTION, "link_keyframes", "Link Keyframes", 2, (True, False, "Intermittently"))
         ],
         [],
         camera_shake,
