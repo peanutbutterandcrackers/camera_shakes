@@ -6,7 +6,8 @@ import math, random
 
 def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBound, xOffsetUpperBound,
   yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, xOffSigma,
-    yOffSigma, rotSigma, seamless):
+    yOffSigma, rotSigma, seamless, link_keyframes):
+
 	pdb.gimp_image_undo_group_start(image)
 
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
@@ -20,21 +21,28 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 	pdb.gimp_message("Total Animation Frames: %s" % total_frames)
 
 	while frames_done < total_frames:
-		xOffKeyFrameA = random.gauss(xOffsetMidPoint, xOffSigma)
-		yOffKeyFrameA = random.gauss(yOffsetMidPoint, yOffSigma)
-		rotKeyFrameA = random.gauss(rotationMid, rotSigma)
+
+		# If this is the first frame and 'seamless' is false, OR if link_keyframes is false,
+		# set A-frames to a random value; if link_keyframes is true, B-frame will become the
+		# A-frames next time through the loop: linking every single keyframe in the sequence
+		if (not link_keyframes) or (frames_done == 0 and (not seamless)):
+			xOffKeyFrameA = random.gauss(xOffsetMidPoint, xOffSigma)
+			yOffKeyFrameA = random.gauss(yOffsetMidPoint, yOffSigma)
+			rotKeyFrameA = random.gauss(rotationMid, rotSigma)
+
+		# B-frames have to be calculated, no matter what
 		xOffKeyFrameB = random.gauss(xOffsetMidPoint, xOffSigma)
 		yOffKeyFrameB = random.gauss(yOffsetMidPoint, yOffSigma)
 		rotKeyFrameB = random.gauss(rotationMid, rotSigma)
 
-		# For the first shake
+		# For the first shake start interpolating the shake from 0s.
 		if frames_done == 0 and seamless:
-			# start interpolating the shake from 0s.
-			xOffKeyFrameA, yOffKeyFrameA, rotKeyFrameA = 0, 0, 0
-			# TODO: Perhaps have seamlessness be a slider and have a line akin to the following to decrease
-			# B-frames in the 1st and A-frames in the last shake so as to make them even less notice-able.
-			# The more the seamless-ness value, the greater the denominator. Find better mathematical expr.
-			# xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB = xOffKeyFrameB/2, yOffKeyFrameB/2, rotKeyFrameB/2
+				xOffKeyFrameA, yOffKeyFrameA, rotKeyFrameA = 0, 0, 0
+				# TODO: Perhaps have seamlessness be a slider and have a line akin to the following to decrease
+				# B-frames in the 1st and A-frames in the last shake so as to make them even less notice-able.
+				# The more the seamless-ness value, the greater the denominator. Find better mathematical expr.
+				# xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB = xOffKeyFrameB/2, yOffKeyFrameB/2, rotKeyFrameB/2
+				# if seamless: # Makes more sense to have B-frames defined before this one
 
 		rem_frames = total_frames - frames_done
 		steps = in_betweens + 2 # user-specified in_betweens + 2 Key Frames
@@ -64,7 +72,10 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 			# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
 
 			frames_done += 1
-		
+
+		if link_keyframes:
+			xOffKeyFrameA, yOffKeyFrameA, rotKeyFrameA = xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB
+
 	pdb.gimp_image_undo_group_end(image)
 
 register(
@@ -88,7 +99,8 @@ register(
 		(PF_FLOAT, "xOffSigma", "X Offset Sigma", 1.5),
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
 		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
-		(PF_BOOL, "seamless", "Seamless", True)
+		(PF_BOOL, "seamless", "Seamless", True),
+		(PF_BOOL, "link_keyframes", "Link Keyframes", True)
         ],
         [],
         camera_shake,
@@ -96,4 +108,3 @@ register(
 )
 
 main()
-
