@@ -5,7 +5,7 @@ import easy_easer, pytweening
 import math, random
 
 def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBound, xOffsetUpperBound,
-  yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, xOffSigma,
+  yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, prevent_overflow, xOffSigma,
     yOffSigma, rotSigma, seamless, link_keyframes):
 
 	pdb.gimp_image_undo_group_start(image)
@@ -64,6 +64,15 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 				# i.e. no shakes in the last layer
 				xOffKeyFrameB, yOffKeyFrameB, rotKeyFrameB = 0, 0, 0
 
+		# Prevent values from overflowing out of bounds
+		if prevent_overflow:
+			xOffKeyFrameA = min(xOffsetUpperBound, max(xOffsetLowerBound, xOffKeyFrameA))
+			xOffKeyFrameB = min(xOffsetUpperBound, max(xOffsetLowerBound, xOffKeyFrameB))
+			yOffKeyFrameA = min(yOffsetUpperBound, max(yOffsetLowerBound, yOffKeyFrameA))
+			yOffKeyFrameB = min(yOffsetUpperBound, max(yOffsetLowerBound, yOffKeyFrameB))
+			rotKeyFrameA = min(rotationUpperBound, max(rotationLowerBound, rotKeyFrameA))
+			rotKeyFrameB = min(rotationUpperBound, max(rotationLowerBound, rotKeyFrameB))
+
 		xOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, xOffKeyFrameA, xOffKeyFrameB)
 		yOffTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, yOffKeyFrameA, yOffKeyFrameB)
 		rotTweens = easy_easer.MegaTweenWrapper(pytweening.linear, steps, rotKeyFrameA, rotKeyFrameB)
@@ -105,6 +114,7 @@ register(
 		(PF_FLOAT, "yOffsetUpperBound", "Y-Offset Upper Bound", 5*2),
 		(PF_FLOAT, "rotationLowerBound", "Rotation Lower Bound", -0.5*2),
 		(PF_FLOAT, "rotationUpperBound", "Rotation Upper Bound", 0.1*2),
+		(PF_BOOL, "prevent_overflow", "Prevent Offset Overflows", True),
 		(PF_FLOAT, "xOffSigma", "X Offset Sigma", 1.5),
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
 		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
