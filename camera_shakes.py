@@ -5,19 +5,20 @@ import easy_easer, pytweening
 import math, random
 
 def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBound, xOffsetUpperBound,
-  yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, prevent_overflow, xOffSigma,
-    yOffSigma, rotSigma, seamless, link_keyframes):
+  yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, prevent_overflow, vary_offset_mean,
+     xOffSigma, yOffSigma, rotSigma, seamless, link_keyframes):
 
 	pdb.gimp_image_undo_group_start(image)
 
 	# script behaviours
 	toggle_keyframe_linking_randomly = False
+	toggle_offset_mean_alteration_randomly = False
 
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
 	
-	xOffsetMidPoint = (xOffsetLowerBound + xOffsetUpperBound) / 2
-	yOffsetMidPoint = (yOffsetUpperBound + yOffsetUpperBound) / 2
-	rotationMid = (rotationLowerBound + rotationUpperBound ) / 2
+	xOffsetMean = (xOffsetLowerBound + xOffsetUpperBound) / 2 # xOffsetMidPoint
+	yOffsetMean = (yOffsetUpperBound + yOffsetUpperBound) / 2 # yOffsetMidPoint
+	rotationMean = (rotationLowerBound + rotationUpperBound ) / 2 # rotationMidPoint
 
 	total_frames = (in_betweens + 1) * (total_keyframes - 1) + 1
 	frames_done = 0
@@ -26,23 +27,36 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 	if link_keyframes == "Intermittently":
 		toggle_keyframe_linking_randomly = True
 
+	if vary_offset_mean == "Intermittently":
+		toggle_offset_mean_alteration_randomly = True
+
 	while frames_done < total_frames:
 
 		if toggle_keyframe_linking_randomly:
 			link_keyframes = random.choice(True, False)
 
+		if toggle_offset_mean_alteration_randomly:
+			vary_offset_mean = random.choice(True, False)
+
+		if vary_offset_mean:
+			# use random.triangular to get a mean that moves around. Yet, because
+			# of triangular distribution, the offset mid points are more likely to turn up.
+			xOffsetMean = random.triangular(xOffsetLowerBound, xOffsetUpperBound)
+			yOffsetMean = random.triangular(yOffsetLowerBound, yOffsetUpperBound)
+			rotationMean = random.triangular(yOffsetLowerBound, yOffsetUpperBound)
+
 		# If this is the first frame and 'seamless' is false, OR if link_keyframes is false,
 		# set A-frames to a random value; if link_keyframes is true, B-frame will become the
 		# A-frames next time through the loop: linking every single keyframe in the sequence
 		if (not link_keyframes) or (frames_done == 0 and (not seamless)):
-			xOffKeyFrameA = random.gauss(xOffsetMidPoint, xOffSigma)
-			yOffKeyFrameA = random.gauss(yOffsetMidPoint, yOffSigma)
-			rotKeyFrameA = random.gauss(rotationMid, rotSigma)
+			xOffKeyFrameA = random.gauss(xOffsetMean, xOffSigma)
+			yOffKeyFrameA = random.gauss(yOffsetMean, yOffSigma)
+			rotKeyFrameA = random.gauss(rotationMean, rotSigma)
 
 		# B-frames have to be calculated, no matter what
-		xOffKeyFrameB = random.gauss(xOffsetMidPoint, xOffSigma)
-		yOffKeyFrameB = random.gauss(yOffsetMidPoint, yOffSigma)
-		rotKeyFrameB = random.gauss(rotationMid, rotSigma)
+		xOffKeyFrameB = random.gauss(xOffsetMean, xOffSigma)
+		yOffKeyFrameB = random.gauss(yOffsetMean, yOffSigma)
+		rotKeyFrameB = random.gauss(rotationMean, rotSigma)
 
 		# For the first shake start interpolating the shake from 0s.
 		if frames_done == 0 and seamless:
@@ -115,6 +129,7 @@ register(
 		(PF_FLOAT, "rotationLowerBound", "Rotation Lower Bound", -0.5*2),
 		(PF_FLOAT, "rotationUpperBound", "Rotation Upper Bound", 0.1*2),
 		(PF_BOOL, "prevent_overflow", "Prevent Offset Overflows", True),
+		(PF_OPTION, "vary_offset_mean", "Vary Offset Mean", 1, (True, False, "Intermittently")),
 		(PF_FLOAT, "xOffSigma", "X Offset Sigma", 1.5),
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
 		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
