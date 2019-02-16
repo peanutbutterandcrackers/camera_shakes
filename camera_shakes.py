@@ -100,8 +100,11 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 			# random rotation on every single frame
 			pdb.gimp_item_transform_rotate(new_frame, math.radians(rotTweens[i]), TRUE, 0, 0)
 
-			# TODO: Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
+			# Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
 			# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
+                        newFrameProper = pdb.gimp_layer_new_from_visible(image, image, "Frame #%s" % (frames_done + 1))
+                        pdb.gimp_image_remove_layer(image, new_frame)
+                        pdb.gimp_image_insert_layer(image, newFrameProper, None, 0)
 
 			frames_done += 1
 
