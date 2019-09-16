@@ -6,13 +6,18 @@ import math, random
 
 def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBound, xOffsetUpperBound,
   yOffsetLowerBound, yOffsetUpperBound, rotationLowerBound, rotationUpperBound, prevent_overflow, vary_offset_mean,
-     xOffSigma, yOffSigma, rotSigma, seamless, link_keyframes):
+     xOffSigma, yOffSigma, rotSigma, seamless, link_keyframes, merge_down):
 
 	pdb.gimp_image_undo_group_start(image)
 
-	# script behaviours
+	# SCRIPT BEHAVIOURS
 	toggle_keyframe_linking_randomly = False
 	toggle_offset_mean_alteration_randomly = False
+	# Perform the equivalent of 'Merge Down' operation on new frames:
+	# Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
+	# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
+	# However, in some cases this won't be desirable. For eg: a floating shakey text (to put on top of another image on a video)
+	merge_down_new_frames = False
 
 	shakee = pdb.gimp_image_get_active_layer(image) # the layer that will be shaked
 	
@@ -29,6 +34,9 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 
 	if vary_offset_mean == "Intermittently":
 		toggle_offset_mean_alteration_randomly = True
+
+	if merge_down:
+		merge_down_new_frames = True
 
 	while frames_done < total_frames:
 
@@ -100,11 +108,10 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 			# random rotation on every single frame
 			pdb.gimp_item_transform_rotate(new_frame, math.radians(rotTweens[i]), TRUE, 0, 0)
 
-			# Merge new_frame down with previous layer, remove new_frame and set the merged_layer as the new_frame
-			# This will prevent the final image sequence from having different borders, brings about uniformity and the illusion works better
-                        newFrameProper = pdb.gimp_layer_new_from_visible(image, image, "Frame #%s" % (frames_done + 1))
-                        pdb.gimp_image_remove_layer(image, new_frame)
-                        pdb.gimp_image_insert_layer(image, newFrameProper, None, 0)
+			if merge_down_new_frames:
+				newFrameProper = pdb.gimp_layer_new_from_visible(image, image, "Frame #%s" % (frames_done + 1))
+				pdb.gimp_image_remove_layer(image, new_frame)
+				pdb.gimp_image_insert_layer(image, newFrameProper, None, 0)
 
 			frames_done += 1
 
@@ -114,13 +121,13 @@ def camera_shake(image, drawable, total_keyframes, in_betweens, xOffsetLowerBoun
 	pdb.gimp_image_undo_group_end(image)
 
 register(
-        "python_fu_camera_shake",
-        "Camera Shake Emulation",
-        "Create an image sequence that animates camera shakes",
-        "Prafulla Giri", "Prafulla Giri", "2019",
-        "Camera Shake...",
-        "*",
-        [
+		"python_fu_camera_shake",
+		"Camera Shake Emulation",
+		"Create an image sequence that animates camera shakes",
+		"Prafulla Giri", "Prafulla Giri", "2019",
+		"Camera Shake...",
+		"*",
+		[
 		(PF_IMAGE, "image", "Takes current Image", None),
 		(PF_DRAWABLE, "drawable", "Input Layer", None),
 		(PF_INT, "total_keyframes", "Camera Shake Keyframes", 50),
@@ -137,11 +144,12 @@ register(
 		(PF_FLOAT, "yOffSigma", "Y Offset Sigma", 1.25),
 		(PF_FLOAT, "rotSigma", "Rotation Sigma", 0.125),
 		(PF_BOOL, "seamless", "Seamless", True),
-		(PF_OPTION, "link_keyframes", "Link Keyframes", 2, (True, False, "Intermittently"))
-        ],
-        [],
-        camera_shake,
-        menu="<Image>/Filters/Custom"
+		(PF_OPTION, "link_keyframes", "Link Keyframes", 2, (True, False, "Intermittently")),
+		(PF_BOOL, "merge_down", "Merge Down New Layers", True)
+		],
+		[],
+		camera_shake,
+		menu="<Image>/Filters/Custom"
 )
 
 main()
